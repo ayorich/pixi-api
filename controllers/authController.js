@@ -3,9 +3,23 @@ const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const { colors } = require('../utils/colors');
 
 dotenv.config({ path: './config.env' });
 
+const userColor = async () => {
+  const users = await User.find({});
+
+  const systemColors = users.map(({ color }) => color);
+
+  const unUsedColors = colors.filter(
+    color => !systemColors.some(sysCol => sysCol === color)
+  );
+
+  const index = Math.floor(Math.random() * unUsedColors.length);
+
+  return unUsedColors[index] || '#191970';
+};
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
@@ -36,12 +50,14 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
+  const color = await userColor();
   const newUser = await User.create({
     firstName: req.body.firstName,
     lastName: req.body.lastName,
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.confirmPassword
+    passwordConfirm: req.body.confirmPassword,
+    color
   });
 
   createSendToken(newUser, 201, req, res);
